@@ -63,7 +63,7 @@ run_nexttrace() {
     local log_file="$3"
 
     echo "---------- $name ($ip) ----------"
-    if nexttrace -d -m 25 "$ip" 2>&1 | tee "$log_file"; then
+    if nexttrace -m 25 "$ip" 2>&1 | tee "$log_file"; then
         echo ""
     else
         echo "[警告] $name 测试过程返回非 0 状态，已保留原始输出供分析。"
