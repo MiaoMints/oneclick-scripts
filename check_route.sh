@@ -5,10 +5,10 @@
 #
 # 功能:
 # - 自动检测 nexttrace 是否安装
-# - 测试三条回程: 电信 / 联通 / 移动
-# - 按特征 IP 进行评分
-# - 输出单线结论 + 综合结论
-# - 保存原始日志和分析报告
+# - 参考 zhanghanyun/backtrace 的风格输出测试结果
+# - 先输出本机国家 / 城市 / 服务商 / 项目地址
+# - 再逐条打印三网回程测试结果
+# - 最后给出简洁综合判断
 
 set -euo pipefail
 
@@ -51,10 +51,32 @@ declare -a TARGET_NAMES=("上海电信" "北京联通" "广州移动")
 declare -a TARGET_IPS=("$TELECOM_IP" "$UNICOM_IP" "$MOBILE_IP")
 declare -a TARGET_KEYS=("telecom" "unicom" "mobile")
 
-echo "========================================"
-echo "  三网回程线路质量检测"
-echo "  时间: $(date '+%Y-%m-%d %H:%M:%S')"
-echo "========================================"
+get_geo_info() {
+    local raw country city org
+    raw="$(curl -fsSL --max-time 5 https://ipinfo.io/json 2>/dev/null || true)"
+    if [ -n "$raw" ]; then
+        local pybin=""
+        if command -v python3 >/dev/null 2>&1; then
+            pybin="python3"
+        elif command -v python >/dev/null 2>&1; then
+            pybin="python"
+        fi
+
+        if [ -n "$pybin" ]; then
+            country="$($pybin -c 'import json,sys; data=json.loads(sys.stdin.read() or "{}"); print(data.get("country",""))' <<< "$raw" 2>/dev/null || true)"
+            city="$($pybin -c 'import json,sys; data=json.loads(sys.stdin.read() or "{}"); print(data.get("city",""))' <<< "$raw" 2>/dev/null || true)"
+            org="$($pybin -c 'import json,sys; data=json.loads(sys.stdin.read() or "{}"); print(data.get("org",""))' <<< "$raw" 2>/dev/null || true)"
+        fi
+        printf '%s|%s|%s\n' "${country:-未知}" "${city:-未知}" "${org:-未知}"
+        return 0
+    fi
+    printf '未知|未知|未知\n'
+}
+
+echo "正在测试三网回程路由..."
+IFS='|' read -r GEO_COUNTRY GEO_CITY GEO_ORG <<< "$(get_geo_info)"
+echo "国家: $GEO_COUNTRY 城市: $GEO_CITY 服务商: $GEO_ORG"
+echo "项目地址: https://github.com/MiaoMints/oneclick-scripts"
 echo ""
 
 run_nexttrace() {
@@ -144,7 +166,7 @@ for i in "${!TARGET_NAMES[@]}"; do
 done
 
 echo "========================================"
-echo "  线路分析报告"
+echo "  线路分析结果"
 echo "========================================"
 
 total_score=0
@@ -169,8 +191,8 @@ for i in "${!TARGET_NAMES[@]}"; do
             ;;
     esac
 
-    echo "  [$name] 结论: $verdict (得分: $score/3)"
-    echo "      依据: $reason"
+    echo "  [$name] $verdict"
+    echo "      $reason"
 done
 
 echo ""
@@ -194,17 +216,10 @@ fi
 echo "  >>> 最终结论: $overall"
 echo "      $overall_text"
 echo ""
-echo "  判定参考:"
-echo "    - 电信优质: 59.43.x.x（CN2 GIA）"
-echo "    - 联通优质: 10099.x.x（AS9929）"
-echo "    - 移动优质: 223.120.x.x（CMIN2）"
-echo "    - 电信普通: 202.97.x.x（163）"
-echo "    - 联通普通: 219.158.x.x（4837）"
-echo "    - 移动普通: 221.183.x.x（CMI）"
-echo ""
 echo "  原始日志已保存到: $LOG_DIR"
 echo "  本次报告已保存到: $REPORT_FILE"
 echo "========================================"
+echo "测试完成!"
 
 {
     echo "NextTrace 三网回程检测报告"
