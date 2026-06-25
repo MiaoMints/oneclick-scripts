@@ -4,7 +4,7 @@
 
 ## 当前脚本
 
-- `check_route.sh`：NextTrace 三网回程检测脚本
+- `check_route.sh`：NextTrace 三网回程检测脚本，输出风格参考 `zhanghanyun/backtrace`
 - `nexttrace_route_report.md`：示例检测报告
 
 ## 使用方式
@@ -19,7 +19,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/MiaoMints/oneclick-scripts/mai
 
 - 仓库建议保持公开，方便直接 raw 下载执行
 - 脚本会先检查 `nexttrace`，缺失时自动安装
-- 然后自动测试三网回程并输出综合结论
+- 输出会先显示 `国家 / 城市 / 服务商 / 项目地址`，再逐条展示三网测试结果
 
 ## 后续扩展
 
