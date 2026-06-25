@@ -16,8 +16,11 @@ TELECOM_IP="101.227.255.45"   # 上海电信
 UNICOM_IP="202.106.0.20"      # 北京联通
 MOBILE_IP="211.136.192.6"     # 广州移动
 
-WORKDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_DIR="$WORKDIR/nexttrace_logs"
+# 兼容 bash <(curl ...) 这种进程替换运行方式：
+# BASH_SOURCE[0] 在这种场景下通常是 /dev/fd/63，不能当作真实目录使用。
+# 所以日志和报告统一写到用户可写的状态目录；没有 HOME 时退回到 /tmp。
+STATE_BASE="${XDG_STATE_HOME:-${HOME:-/tmp}/.local/state}"
+LOG_DIR="$STATE_BASE/oneclick-scripts/nexttrace_logs"
 mkdir -p "$LOG_DIR"
 
 if ! command -v nexttrace >/dev/null 2>&1; then
